@@ -1,0 +1,47 @@
+%% VPC Network: Private subnets, security groups, and isolation
+graph TB
+    Internet["🌐 Internet<br/>(Public)"]
+
+    subgraph "AWS VPC"
+        subgraph "Public Subnet"
+            ALB["Application Load Balancer<br/>(if using EC2)"]
+            APIGw["API Gateway<br/>(managed service,<br/>region-level)"]
+        end
+
+        subgraph "Private Subnet - App"
+            Lambda["Lambda<br/>(serverless)<br/>OR<br/>EC2 Instances"]
+        end
+
+        subgraph "Private Subnet - Database"
+            RDS["RDS PostgreSQL<br/>(multi-AZ)")
+        end
+
+        subgraph "Security"
+            SG1["Security Group:<br/>Allow Lambda → RDS"]
+            SG2["Security Group:<br/>Allow API GW → Lambda"]
+        end
+    end
+
+    S3["S3<br/>(Regional,<br/>not in VPC)"]
+    Cognito["Cognito<br/>(Regional,<br/>not in VPC)"]
+
+    Internet -->|"HTTPS"| APIGw
+    APIGw -->|"Private route"| Lambda
+    Lambda -->|"Private route"| RDS
+    Lambda -->|"IAM role"| S3
+    Lambda -->|"IAM role"| Cognito
+
+    SG1 -.-> RDS
+    SG1 -.-> Lambda
+    SG2 -.-> Lambda
+    SG2 -.-> APIGw
+
+    style Internet fill:#ff9999
+    style ALB fill:#ffcc99
+    style APIGw fill:#ffcc99
+    style Lambda fill:#ccccff
+    style RDS fill:#ffffcc
+    style S3 fill:#99ff99
+    style Cognito fill:#ff99ff
+    style SG1 fill:#e6e6e6
+    style SG2 fill:#e6e6e6

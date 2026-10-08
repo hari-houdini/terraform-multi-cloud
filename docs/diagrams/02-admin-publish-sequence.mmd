@@ -1,0 +1,66 @@
+%% Admin Publishing Flow: Step-by-step when admin publishes a blog post
+sequenceDiagram
+    participant Admin as Admin<br/>(Browser)
+    participant CF as CloudFront
+    participant S3 as S3<br/>(Bucket)
+    participant API as API Gateway
+    participant Cognito as Cognito<br/>(Auth)
+    participant Lambda as Lambda/<br/>EC2
+    participant Prisma as Prisma<br/>ORM
+    participant RDS as RDS<br/>PostgreSQL
+
+    Admin->>CF: 1. GET /admin
+    CF-->>Admin: Admin UI (HTML/CSS/JS)
+
+    Admin->>Admin: 2. Enter email & password
+    Admin->>API: 3. POST /auth/login
+    API->>Cognito: 4. Validate credentials
+    Cognito-->>API: JWT token
+    API-->>Admin: 5. JWT token (store in localStorage)
+
+    Admin->>Admin: 6. Click "New Post"
+    Admin->>Admin: 7. Fill form (title, content, category, tags)
+
+    Admin->>API: 8. GET /s3-presigned-url
+    API->>Lambda: Route request
+    Lambda->>S3: Generate presigned URL
+    S3-->>Lambda: URL expires in 15 min
+    Lambda-->>API: Return URL
+    API-->>Admin: 9. Presigned URL
+
+    Admin->>S3: 10. PUT image.jpg (direct, using presigned URL)
+    S3-->>Admin: 11. Upload confirmed
+
+    Admin->>Admin: 12. Click "Save Draft"
+    Admin->>API: POST /posts (with JWT header)
+    API->>Cognito: Validate JWT
+    Cognito-->>API: ✓ Valid
+
+    API->>Lambda: Route request
+    Lambda->>Prisma: Create post record
+    Prisma->>RDS: BEGIN TRANSACTION
+    RDS-->>Prisma: Transaction open
+    Prisma->>RDS: INSERT INTO posts (title, slug, content, authorId, published=false)
+    Prisma->>RDS: INSERT INTO post_categories (postId, categoryId)
+    Prisma->>RDS: INSERT INTO post_tags (postId, tagId)
+    Prisma->>RDS: COMMIT
+    RDS-->>Prisma: Rows inserted (post ID: 123)
+    Prisma-->>Lambda: { id: 123, title: "...", ... }
+
+    Lambda->>Lambda: Store S3 image URL in response
+    Lambda-->>API: 13. Success response
+    API-->>Admin: 14. Draft saved (post ID: 123)
+
+    Admin->>Admin: 15. Click "Publish"
+    Admin->>API: PATCH /posts/123 (published=true, with JWT)
+    API->>Lambda: Route request
+    Lambda->>Prisma: Update post.published = true
+    Prisma->>RDS: UPDATE posts SET published=true WHERE id=123
+    RDS-->>Prisma: Row updated
+
+    Lambda->>CF: 16. Invalidate cache /api/posts*
+    CF-->>Lambda: Cache cleared
+
+    Lambda-->>API: 17. Success
+    API-->>Admin: 18. "Post published!"
+    Admin->>Admin: 19. Redirect to post URL

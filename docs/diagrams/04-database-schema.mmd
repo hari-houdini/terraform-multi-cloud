@@ -1,0 +1,51 @@
+%% Database Schema (ERD): Tables, relationships, and Prisma structure
+erDiagram
+    USERS ||--o{ POSTS : creates
+    USERS {
+        int id PK
+        string email UK
+        string passwordHash
+        string name
+        string resetToken
+        timestamp resetTokenExpiry
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    POSTS ||--o{ POST_CATEGORIES : has
+    POSTS ||--o{ POST_TAGS : has
+    POSTS {
+        int id PK
+        string title
+        string slug UK
+        text content
+        string featuredImage "S3 key"
+        boolean published
+        int authorId FK
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    CATEGORIES ||--o{ POST_CATEGORIES : includes
+    CATEGORIES {
+        int id PK
+        string name UK
+        timestamp createdAt
+    }
+
+    TAGS ||--o{ POST_TAGS : includes
+    TAGS {
+        int id PK
+        string name UK
+        timestamp createdAt
+    }
+
+    POST_CATEGORIES {
+        int postId FK
+        int categoryId FK
+    }
+
+    POST_TAGS {
+        int postId FK
+        int tagId FK
+    }

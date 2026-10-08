@@ -1,0 +1,46 @@
+%% Public Read Flow: Step-by-step when public users fetch and read blog posts
+sequenceDiagram
+    participant User as Public User<br/>(Browser)
+    participant CF as CloudFront
+    participant S3Blog as S3<br/>(Blog Site)
+    participant S3Media as S3<br/>(Images)
+    participant API as API Gateway
+    participant Lambda as Lambda/<br/>EC2
+    participant Prisma as Prisma<br/>ORM
+    participant RDS as RDS<br/>PostgreSQL
+
+    User->>CF: 1. GET /
+    CF->>S3Blog: Cache miss → fetch site
+    S3Blog-->>CF: HTML, CSS, JS
+    CF-->>User: 2. Blog homepage cached
+
+    User->>User: 3. Click "Learning AWS"
+    User->>CF: 4. GET /api/posts/learning-aws-architecture
+
+    alt Cache Hit
+        CF-->>User: 5a. Cached response (5 min TTL)
+    else Cache Miss
+        CF->>API: 5b. Route to API Gateway
+        API->>Lambda: Request post
+        Lambda->>Prisma: Query post by slug
+        Prisma->>RDS: SELECT posts + JOIN authors, categories, tags WHERE slug=...
+        RDS-->>Prisma: Post data + relations
+        Prisma-->>Lambda: Nested object
+        Lambda->>Lambda: Build response (S3 image URL)
+        Lambda-->>API: 6. JSON response
+        API->>CF: 7. Add cache headers (max-age=300)
+        CF-->>User: 8. Response cached + sent to browser
+    end
+
+    User->>User: 9. Render post HTML
+    User->>CF: 10. GET /blog/123/featured.jpg
+
+    alt Image Cached
+        CF-->>User: 11a. Image from CloudFront cache (1 day TTL)
+    else Image Miss
+        CF->>S3Media: 11b. Fetch from S3
+        S3Media-->>CF: Image data
+        CF-->>User: 12. Image served + cached
+    end
+
+    User->>User: 13. Read post with featured image

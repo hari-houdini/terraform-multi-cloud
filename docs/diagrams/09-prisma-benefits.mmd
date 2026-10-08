@@ -1,0 +1,12 @@
+%% Prisma ORM Benefits: Why ORM matters vs. manual SQL
+graph LR
+    Problem["Manual SQL<br/>+ JOIN statements<br/>= Error-prone"]
+    Prisma["Prisma ORM<br/>Schema-first<br/>Type-safe"]
+    Benefits["✓ Auto SQL generation<br/>✓ Automatic joins<br/>✓ Type safety<br/>✓ Migrations<br/>✓ Transactions"]
+
+    Problem -->|"Use Prisma"| Prisma
+    Prisma --> Benefits
+
+    style Problem fill:#ff9999
+    style Prisma fill:#ccccff
+    style Benefits fill:#99ff99

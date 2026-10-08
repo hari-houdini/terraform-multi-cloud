@@ -1,0 +1,27 @@
+%% Data Flow: Upload to Display pipeline
+graph LR
+    AdminWrite["Admin writes post<br/>in Payload UI"]
+    RDSWrite["Data written<br/>to RDS"]
+    S3Write["Image uploaded<br/>to S3"]
+    PublicAPI["Public requests<br/>via /api/posts"]
+    RDSRead["Prisma queries<br/>RDS"]
+    S3Read["Image served<br/>from S3/CloudFront"]
+    PublicRender["Browser renders<br/>post + image"]
+
+    AdminWrite -->|"Prisma ORM<br/>Transaction"| RDSWrite
+    AdminWrite -->|"Presigned URL<br/>Direct upload"| S3Write
+
+    RDSWrite -->|"Cached for 5 min"| PublicAPI
+    PublicAPI -->|"Auto-join<br/>relations"| RDSRead
+    RDSRead -->|"Post + author<br/>+ tags in JSON"| PublicRender
+
+    S3Write -->|"Cached for 1 day"| S3Read
+    S3Read -->|"Featured image URL"| PublicRender
+
+    style AdminWrite fill:#ff9999
+    style RDSWrite fill:#ffffcc
+    style S3Write fill:#99ff99
+    style PublicAPI fill:#ffcc99
+    style RDSRead fill:#ffffcc
+    style S3Read fill:#99ff99
+    style PublicRender fill:#ccccff

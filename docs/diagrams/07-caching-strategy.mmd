@@ -1,0 +1,38 @@
+%% Caching Strategy: CloudFront, browser, and RDS caching layers
+graph TB
+    subgraph "CloudFront Edge Locations"
+        CFAdmin["Admin UI<br/>Cache-Control: max-age=3600<br/>(1 hour)"]
+        CFImages["Images<br/>Cache-Control: max-age=86400<br/>(1 day)"]
+        CFApi["API Responses<br/>Cache-Control: max-age=300<br/>(5 min)"]
+    end
+
+    subgraph "Browser Local Storage"
+        BrowserJWT["JWT Token<br/>Until logout"]
+        BrowserState["Form state<br/>Until page refresh"]
+    end
+
+    subgraph "RDS / S3"
+        Database["Database<br/>(Source of truth)"]
+        Storage["S3 Bucket<br/>(Source of truth)"]
+    end
+
+    AdminRequest["Admin Request"]
+    PublicRequest["Public Request"]
+    ImageRequest["Image Request"]
+
+    AdminRequest -->|"Cache miss (first visit)"| Database
+    AdminRequest -->|"Cache hit (within 1 hr)"| CFAdmin
+
+    PublicRequest -->|"Cache miss"| Database
+    PublicRequest -->|"Cache hit (within 5 min)"| CFApi
+
+    ImageRequest -->|"Cache miss"| Storage
+    ImageRequest -->|"Cache hit (within 1 day)"| CFImages
+
+    style CFAdmin fill:#99ccff
+    style CFImages fill:#99ccff
+    style CFApi fill:#99ccff
+    style BrowserJWT fill:#ffffcc
+    style BrowserState fill:#ffffcc
+    style Database fill:#ffffcc
+    style Storage fill:#ffffcc

@@ -1,0 +1,28 @@
+%% Authentication & Authorization Flow: Cognito + JWT + IAM
+sequenceDiagram
+    participant Admin as Admin
+    participant Cognito as Cognito<br/>(IdP)
+    participant APIGateway as API Gateway
+    participant IAM as IAM Policies
+    participant Lambda as Lambda
+
+    Admin->>Cognito: 1. POST /auth/login<br/>(email, password)
+    Cognito->>Cognito: Validate credentials
+    Cognito-->>Admin: 2. JWT token<br/>(expires: 1 hour)
+
+    Admin->>APIGateway: 3. POST /posts<br/>Header: Authorization: Bearer JWT
+
+    APIGateway->>Cognito: 4. Validate JWT signature<br/>& expiration
+    Cognito-->>APIGateway: 5. ✓ Valid<br/>(claims: { userId: 1, ... })
+
+    APIGateway->>IAM: 6. Check policy:<br/>User=1 can POST /posts?
+    IAM-->>APIGateway: 7. ✓ Allowed<br/>(user:1 has PostsWrite)
+
+    APIGateway->>Lambda: 8. Route to handler
+    Lambda->>Lambda: 9. Execute business logic
+    Lambda-->>APIGateway: 10. Success (201 Created)
+    APIGateway-->>Admin: 11. Created post
+
+    rect rgb(200, 220, 255)
+        Note over Admin, IAM: If JWT invalid or IAM denies → 401/403 error
+    end

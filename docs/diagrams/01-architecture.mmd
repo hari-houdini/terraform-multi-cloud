@@ -1,0 +1,52 @@
+%% Service Architecture: All AWS services and how they connect
+graph TB
+    Internet["🌐 Internet / User"]
+
+    CloudFront["☁️ CloudFront<br/>(CDN)"]
+
+    S3Admin["📦 S3<br/>(Admin UI Assets)"]
+    S3Media["📦 S3<br/>(Media/Images)"]
+
+    APIGateway["🚪 API Gateway<br/>(REST Endpoints)"]
+
+    Cognito["🔐 Cognito<br/>(Authentication)"]
+
+    Lambda["⚡ Lambda / EC2<br/>(Payload CMS)"]
+    Prisma["🔗 Prisma ORM<br/>(Schema & Queries)"]
+
+    RDS["💾 RDS PostgreSQL<br/>(Database)"]
+
+    VPC["🔒 VPC<br/>(Private Network)"]
+
+    IAM["👤 IAM<br/>(Permissions)"]
+
+    Internet -->|HTTP/HTTPS| CloudFront
+
+    CloudFront -->|Cache Hit/Miss| S3Admin
+    CloudFront -->|Cache Hit/Miss| S3Media
+    CloudFront -->|Route| APIGateway
+
+    APIGateway -->|Route| Lambda
+    APIGateway -->|Validate Token| Cognito
+
+    Lambda -->|Query/Insert/Update| Prisma
+    Prisma -->|SQL Queries| RDS
+
+    Lambda -->|Upload/Download| S3Media
+    Lambda -->|Check Permissions| IAM
+    Cognito -->|Check Permissions| IAM
+
+    RDS -.->|Inside| VPC
+    Lambda -.->|Inside| VPC
+
+    style Internet fill:#ff9999
+    style CloudFront fill:#99ccff
+    style S3Admin fill:#99ff99
+    style S3Media fill:#99ff99
+    style APIGateway fill:#ffcc99
+    style Cognito fill:#ff99ff
+    style Lambda fill:#ccccff
+    style Prisma fill:#ffcccc
+    style RDS fill:#ffffcc
+    style VPC fill:#e6e6e6
+    style IAM fill:#ff99cc
