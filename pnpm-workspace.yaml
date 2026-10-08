@@ -1,0 +1,8 @@
+allowBuilds:
+  esbuild: true
+  sharp: false
+  unrs-resolver: false
+minimumReleaseAge: 10080 # 7 days in minutes
+minimumReleaseAgeStrict: true
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 10080 # 7 days in minutes
